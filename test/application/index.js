@@ -3,14 +3,16 @@
 const assert = require('assert');
 const request = require('supertest');
 
-const Koa = require('../..').server;
+const strapi = require('../..');
+
+const Instance = strapi.instance;
 
 describe('app', function () {
   it('should handle socket errors', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
-    app.use(function * () {
-      this.socket.emit('error', new Error('boom'));
+    app.use(function * (ctx, next) {
+      ctx.socket.emit('error', new Error('boom'));
     });
 
     app.on('error', function (err) {
@@ -24,13 +26,13 @@ describe('app', function () {
   });
 
   it('should not .writeHead when !socket.writable', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
-    app.use(function * () {
-      this.socket.writable = false;
-      this.status = 204;
-      this.res.writeHead =
-      this.res.end = function () {
+    app.use(function * (ctx, next) {
+      ctx.socket.writable = false;
+      ctx.status = 204;
+      ctx.res.writeHead =
+      ctx.res.end = function () {
         throw new Error('response sent');
       };
     });
@@ -46,7 +48,7 @@ describe('app', function () {
     const NODE_ENV = process.env.NODE_ENV;
     process.env.NODE_ENV = '';
 
-    const app = new Koa();
+    const app = new Instance();
     process.env.NODE_ENV = NODE_ENV;
 
     assert.equal(app.env, 'development');

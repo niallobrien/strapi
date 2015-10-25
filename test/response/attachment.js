@@ -4,7 +4,9 @@ const request = require('supertest');
 
 const context = require('../helpers/context');
 
-const Koa = require('../..').server;
+const strapi = require('../..');
+
+const Instance = strapi.instance;
 
 describe('ctx.attachment([filename])', function () {
   describe('when given a filename', function () {
@@ -33,11 +35,11 @@ describe('ctx.attachment([filename])', function () {
     });
 
     it('should work with http client', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
-        this.attachment('path/to/include-no-ascii-char-中文名-ok.json');
-        this.body = {
+      app.use(function * (ctx, next) {
+        ctx.attachment('path/to/include-no-ascii-char-中文名-ok.json');
+        ctx.body = {
           foo: 'bar'
         };
       });

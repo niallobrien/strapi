@@ -4,7 +4,8 @@ const request = require('supertest');
 const should = require('should');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('session', function () {
   let cookie;
@@ -12,15 +13,15 @@ describe('session', function () {
   describe('when options.signed = true', function () {
     describe('when app.keys are set', function () {
       it('should work', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session({}, app));
 
-        app.use(function * () {
-          this.session.message = 'hi';
-          this.body = this.session;
+        app.use(function * (ctx, next) {
+          ctx.session.message = 'hi';
+          ctx.body = ctx.session;
         });
 
         request(app.listen())
@@ -31,13 +32,13 @@ describe('session', function () {
 
     describe('when app.keys are not set', function () {
       it('should throw', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session.message = 'hi';
-          this.body = this.session;
+        app.use(function * (ctx, next) {
+          ctx.session.message = 'hi';
+          ctx.body = ctx.session;
         });
 
         request(app.listen())
@@ -48,7 +49,7 @@ describe('session', function () {
 
     describe('when app not set', function () {
       it('should throw', function () {
-        const app = new Koa();
+        const app = new Instance();
 
         (function () {
           app.use(strapi.middlewares.session());
@@ -60,15 +61,15 @@ describe('session', function () {
   describe('when options.signed = false', function () {
     describe('when app.keys are not set', function () {
       it('should work', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.session({
           signed: false
         }, app));
 
-        app.use(function * () {
-          this.session.message = 'hi';
-          this.body = this.session;
+        app.use(function * (ctx, next) {
+          ctx.session.message = 'hi';
+          ctx.body = ctx.session;
         });
 
         request(app.listen())
@@ -80,18 +81,18 @@ describe('session', function () {
 
   describe('when the session contains a ;', function () {
     it('should still work', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
       app.use(strapi.middlewares.session(app));
 
-      app.use(function * () {
-        if (this.method === 'POST') {
-          this.session.string = ';';
-          this.status = 204;
+      app.use(function * (ctx, next) {
+        if (ctx.method === 'POST') {
+          ctx.session.string = ';';
+          ctx.status = 204;
         } else {
-          this.body = this.session.string;
+          ctx.body = ctx.session.string;
         }
       });
 
@@ -115,14 +116,14 @@ describe('session', function () {
   describe('new session', function () {
     describe('when not accessed', function () {
       it('should not Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.body = 'greetings';
+        app.use(function * (ctx, next) {
+          ctx.body = 'greetings';
         });
 
         request(app.listen())
@@ -139,15 +140,15 @@ describe('session', function () {
 
     describe('when accessed and not populated', function () {
       it('should not Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session;
-          this.body = 'greetings';
+        app.use(function * (ctx, next) {
+          ctx.session;
+          ctx.body = 'greetings';
         });
 
         request(app.listen())
@@ -164,15 +165,15 @@ describe('session', function () {
 
     describe('when populated', function () {
       it('should Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session.message = 'hello';
-          this.body = '';
+        app.use(function * (ctx, next) {
+          ctx.session.message = 'hello';
+          ctx.body = '';
         });
 
         request(app.listen())
@@ -188,14 +189,14 @@ describe('session', function () {
       });
 
       it('should not Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.body = this.session;
+        app.use(function * (ctx, next) {
+          ctx.body = ctx.session;
         });
 
         request(app.listen())
@@ -214,14 +215,14 @@ describe('session', function () {
   describe('saved session', function () {
     describe('when not accessed', function () {
       it('should not Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.body = 'aklsdjflasdjf';
+        app.use(function * (ctx, next) {
+          ctx.body = 'aklsdjflasdjf';
         });
 
         request(app.listen())
@@ -239,15 +240,15 @@ describe('session', function () {
 
     describe('when accessed but not changed', function () {
       it('should be the same session', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session.message.should.equal('hello');
-          this.body = 'aklsdjflasdjf';
+        app.use(function * (ctx, next) {
+          ctx.session.message.should.equal('hello');
+          ctx.body = 'aklsdjflasdjf';
         });
 
         request(app.listen())
@@ -257,15 +258,15 @@ describe('session', function () {
       });
 
       it('should not Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session.message.should.equal('hello');
-          this.body = 'aklsdjflasdjf';
+        app.use(function * (ctx, next) {
+          ctx.session.message.should.equal('hello');
+          ctx.body = 'aklsdjflasdjf';
         });
 
         request(app.listen())
@@ -283,15 +284,15 @@ describe('session', function () {
 
     describe('when accessed and changed', function () {
       it('should Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session.money = '$$$';
-          this.body = 'aklsdjflasdjf';
+        app.use(function * (ctx, next) {
+          ctx.session.money = '$$$';
+          ctx.body = 'aklsdjflasdjf';
         });
 
         request(app.listen())
@@ -306,15 +307,15 @@ describe('session', function () {
   describe('when session is', function () {
     describe('null', function () {
       it('should expire the session', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session = null;
-          this.body = 'asdf';
+        app.use(function * (ctx, next) {
+          ctx.session = null;
+          ctx.body = 'asdf';
         });
 
         request(app.listen())
@@ -326,15 +327,15 @@ describe('session', function () {
 
     describe('an empty object', function () {
       it('should not Set-Cookie', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session = {};
-          this.body = 'asdf';
+        app.use(function * (ctx, next) {
+          ctx.session = {};
+          ctx.body = 'asdf';
         });
 
         request(app.listen())
@@ -351,17 +352,17 @@ describe('session', function () {
 
     describe('an object', function () {
       it('should create a session', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session = {
+        app.use(function * (ctx, next) {
+          ctx.session = {
             message: 'hello'
           };
-          this.body = 'asdf';
+          ctx.body = 'asdf';
         });
 
         request(app.listen())
@@ -373,14 +374,14 @@ describe('session', function () {
 
     describe('anything else', function () {
       it('should throw', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
         app.use(strapi.middlewares.session(app));
 
-        app.use(function * () {
-          this.session = 'asdf';
+        app.use(function * (ctx, next) {
+          ctx.session = 'asdf';
         });
 
         request(app.listen())
@@ -392,28 +393,28 @@ describe('session', function () {
 
   describe('when an error is thrown downstream and caught upstream', function () {
     it('should still save the session', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
-      app.use(function * (next) {
+      app.use(function * (ctx, next) {
         try {
           yield * next;
         } catch (err) {
-          this.status = err.status;
-          this.body = err.message;
+          ctx.status = err.status;
+          ctx.body = err.message;
         }
       });
 
       app.use(strapi.middlewares.session(app));
 
-      app.use(function * (next) {
-        this.session.name = 'funny';
+      app.use(function * (ctx, next) {
+        ctx.session.name = 'funny';
         yield * next;
       });
 
-      app.use(function * () {
-        this.throw(401);
+      app.use(function * (ctx, next) {
+        ctx.throw(401);
       });
 
       request(app.listen())
@@ -426,7 +427,7 @@ describe('session', function () {
   describe('when maxAge present', function () {
     describe('and not expire', function () {
       it('should not expire the session', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
@@ -434,14 +435,14 @@ describe('session', function () {
           maxAge: 100
         }, app));
 
-        app.use(function * () {
-          if (this.method === 'POST') {
-            this.session.message = 'hi';
-            this.body = 200;
+        app.use(function * (ctx, next) {
+          if (ctx.method === 'POST') {
+            ctx.session.message = 'hi';
+            ctx.body = 200;
             return;
           }
 
-          this.body = this.session.message;
+          ctx.body = ctx.session.message;
         });
 
         request(app.listen())
@@ -464,7 +465,7 @@ describe('session', function () {
 
     describe('and expired', function () {
       it('should expire the sess', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
@@ -472,14 +473,14 @@ describe('session', function () {
           maxAge: 100
         }, app));
 
-        app.use(function * () {
-          if (this.method === 'POST') {
-            this.session.message = 'hi';
-            this.status = 200;
+        app.use(function * (ctx, next) {
+          if (ctx.method === 'POST') {
+            ctx.session.message = 'hi';
+            ctx.status = 200;
             return;
           }
 
-          this.body = this.session.message || '';
+          ctx.body = ctx.session.message || '';
         });
 
         request(app.listen())
@@ -505,7 +506,7 @@ describe('session', function () {
 
   describe('ctx.session.maxAge', function () {
     it('should return opt.maxAge', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -513,8 +514,8 @@ describe('session', function () {
         maxAge: 100
       }, app));
 
-      app.use(function * () {
-        this.body = this.session.maxAge;
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.session.maxAge;
       });
 
       request(app.listen())
@@ -525,16 +526,16 @@ describe('session', function () {
 
   describe('ctx.session.maxAge=', function () {
     it('should set sessionOptions.maxAge', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
       app.use(strapi.middlewares.session(app));
 
-      app.use(function * () {
-        this.session.foo = 'bar';
-        this.session.maxAge = 100;
-        this.body = this.session.foo;
+      app.use(function * (ctx, next) {
+        ctx.session.foo = 'bar';
+        ctx.session.maxAge = 100;
+        ctx.body = ctx.session.foo;
       });
 
       request(app.listen())
@@ -546,16 +547,16 @@ describe('session', function () {
 
   describe('when get session before enter session middleware', function () {
     it('should work', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
-      app.use(function * (next) {
-        this.session.foo = 'hi';
-        yield next;
+      app.use(function * (ctx, next) {
+        ctx.session.foo = 'hi';
+        yield next();
       });
       app.use(strapi.middlewares.session({}, app));
-      app.use(function * () {
-        this.body = this.session;
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.session;
       });
 
       request(app.callback())
@@ -575,7 +576,7 @@ describe('session', function () {
 
   describe('when valid and beforeSave set', function () {
     it('should ignore session when uid changed', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -588,14 +589,14 @@ describe('session', function () {
         }
       }, app));
 
-      app.use(function * () {
-        if (!this.session.foo) {
-          this.session.foo = Date.now() + '|uid:' + this.cookies.get('uid');
+      app.use(function * (ctx, next) {
+        if (!ctx.session.foo) {
+          ctx.session.foo = Date.now() + '|uid:' + ctx.cookies.get('uid');
         }
 
-        this.body = {
-          foo: this.session.foo,
-          uid: this.cookies.get('uid')
+        ctx.body = {
+          foo: ctx.session.foo,
+          uid: ctx.cookies.get('uid')
         };
       });
 
@@ -647,7 +648,7 @@ describe('session', function () {
           return JSON.parse(data).enveloped;
         }
 
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
@@ -656,9 +657,9 @@ describe('session', function () {
           decode: decode
         }, app));
 
-        app.use(function * () {
-          this.session.counter = (this.session.counter || 0) + 1;
-          this.body = this.session;
+        app.use(function * (ctx, next) {
+          ctx.session.counter = (ctx.session.counter || 0) + 1;
+          ctx.body = ctx.session;
           return;
         });
 

@@ -2,28 +2,30 @@
 
 const request = require('supertest');
 
-const Koa = require('../..').server;
+const strapi = require('../..');
 
-describe('app.use(fn)', function () {
+const Instance = strapi.instance;
+
+describe('strapi.app.use(fn)', function () {
   it('should compose middleware', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const calls = [];
 
-    app.use(function * (next) {
+    app.use(function * (ctx, next) {
       calls.push(1);
-      yield next;
+      yield next();
       calls.push(6);
     });
 
-    app.use(function * (next) {
+    app.use(function * (ctx, next) {
       calls.push(2);
-      yield next;
+      yield next();
       calls.push(5);
     });
 
-    app.use(function * (next) {
+    app.use(function * (ctx, next) {
       calls.push(3);
-      yield next;
+      yield next();
       calls.push(4);
     });
 
@@ -41,19 +43,16 @@ describe('app.use(fn)', function () {
       });
   });
 
-  it('should error when a non-generator function is passed', function () {
-    const app = new Koa();
+  it('should catch thrown errors in non-async functions', function (done) {
+    const app = new Instance();
 
-    try {
-      app.use(function () {});
-    } catch (err) {
-      err.message.should.equal('app.use() requires a generator function');
-    }
-  });
+    app.use(ctx => {
+      ctx.throw('Not Found', 404);
+    });
 
-  it('should not error when a non-generator function is passed when .experimental=true', function () {
-    const app = new Koa();
-    app.experimental = true;
-    app.use(function () {});
+    request(app.listen())
+      .get('/')
+      .expect(404)
+      .end(done);
   });
 });

@@ -3,11 +3,13 @@
 const AssertionError = require('assert').AssertionError;
 const stderr = require('test-console').stderr;
 
-const Koa = require('../..').server;
+const strapi = require('../..');
+
+const Instance = strapi.instance;
 
 describe('app.onerror(err)', function () {
   it('should throw an error if a non-error is given', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     (function () {
       app.onerror('foo');
@@ -19,7 +21,7 @@ describe('app.onerror(err)', function () {
   });
 
   it('should do nothing if status is 404', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const err = new Error();
 
     err.status = 404;
@@ -34,7 +36,7 @@ describe('app.onerror(err)', function () {
   });
 
   it('should do nothing if .silent', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     app.silent = true;
 
     const err = new Error();
@@ -49,7 +51,7 @@ describe('app.onerror(err)', function () {
   });
 
   it('should log the error to stderr', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     app.env = 'dev';
 
     const err = new Error();
@@ -65,7 +67,7 @@ describe('app.onerror(err)', function () {
   });
 
   it('should use err.toString() instad of err.stack', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     app.env = 'dev';
 
     const err = new Error('mock stack null');

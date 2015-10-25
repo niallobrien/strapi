@@ -6,7 +6,8 @@ const should = require('should');
 const request = require('supertest');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('gzip', function () {
   const options = {};
@@ -14,42 +15,42 @@ describe('gzip', function () {
     foo bar string, foo bar string, foo bar string, foo bar string, foo bar string, foo bar string, \
     foo bar string, foo bar string, foo bar string, foo bar string, foo bar string, foo bar string';
 
-  let app = strapi.server();
+  let app = new Instance();
 
   app.use(strapi.middlewares.gzip(options));
   app.use(strapi.middlewares.gzip(options));
-  app.use(function * (next) {
-    if (this.url === '/404') {
-      return yield next;
+  app.use(function * (ctx, next) {
+    if (ctx.url === '/404') {
+      return yield next();
     }
-    if (this.url === '/small') {
-      return this.body = 'foo bar string';
+    if (ctx.url === '/small') {
+      return ctx.body = 'foo bar string';
     }
-    if (this.url === '/string') {
-      return this.body = BODY;
+    if (ctx.url === '/string') {
+      return ctx.body = BODY;
     }
-    if (this.url === '/buffer') {
-      return this.body = new Buffer(BODY);
+    if (ctx.url === '/buffer') {
+      return ctx.body = new Buffer(BODY);
     }
-    if (this.url === '/object') {
-      return this.body = {
+    if (ctx.url === '/object') {
+      return ctx.body = {
         foo: BODY
       };
     }
-    if (this.url === '/number') {
-      return this.body = 1984;
+    if (ctx.url === '/number') {
+      return ctx.body = 1984;
     }
-    if (this.url === '/stream') {
+    if (ctx.url === '/stream') {
       const stat = fs.statSync(__filename);
-      this.set('content-length', stat.size);
-      return this.body = fs.createReadStream(__filename);
+      ctx.set('content-length', stat.size);
+      return ctx.body = fs.createReadStream(__filename);
     }
-    if (this.url === '/exists-encoding') {
-      this.set('content-encoding', 'gzip');
-      return this.body = new Buffer('gzip');
+    if (ctx.url === '/exists-encoding') {
+      ctx.set('content-encoding', 'gzip');
+      return ctx.body = new Buffer('gzip');
     }
-    if (this.url === '/error') {
-      return this.throw(new Error('mock error'));
+    if (ctx.url === '/error') {
+      return ctx.throw(new Error('mock error'));
     }
   });
 

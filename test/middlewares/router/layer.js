@@ -6,23 +6,24 @@ const should = require('should');
 const request = require('supertest');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('layer', function () {
   it('composes multiple callbacks/middleware', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
 
     router.get('/:category/:title',
       function * (next) {
-        this.status = 500;
-        yield next;
+        ctx.status = 500;
+        yield next();
       },
       function * (next) {
-        this.status = 204;
-        yield next;
+        ctx.status = 204;
+        yield next();
       }
     );
 
@@ -39,17 +40,17 @@ describe('layer', function () {
 
   describe('layer#match()', function () {
     it('captures URL path parameters', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
 
       router.get('/:category/:title', function * (next) {
-        this.should.have.property('params');
-        this.params.should.be.type('object');
-        this.params.should.have.property('category', 'match');
-        this.params.should.have.property('title', 'this');
-        this.status = 204;
+        ctx.should.have.property('params');
+        ctx.params.should.be.type('object');
+        ctx.params.should.have.property('category', 'match');
+        ctx.params.should.have.property('title', 'this');
+        ctx.status = 204;
       });
 
       request(app.listen())
@@ -64,17 +65,17 @@ describe('layer', function () {
     });
 
     it('return orginal path parameters when decodeURIComponent throw error', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
 
       router.get('/:category/:title', function * (next) {
-        this.should.have.property('params');
-        this.params.should.be.type('object');
-        this.params.should.have.property('category', '100%');
-        this.params.should.have.property('title', '101%');
-        this.status = 204;
+        ctx.should.have.property('params');
+        ctx.params.should.be.type('object');
+        ctx.params.should.have.property('category', '100%');
+        ctx.params.should.have.property('title', '101%');
+        ctx.status = 204;
       });
 
       request(app.listen())
@@ -84,21 +85,21 @@ describe('layer', function () {
     });
 
     it('populates ctx.captures with regexp captures', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
 
       router.get(/^\/api\/([^\/]+)\/?/i, function * (next) {
-        this.should.have.property('captures');
-        this.captures.should.be.instanceOf(Array);
-        this.captures.should.have.property(0, '1');
-        yield next;
+        ctx.should.have.property('captures');
+        ctx.captures.should.be.instanceOf(Array);
+        ctx.captures.should.have.property(0, '1');
+        yield next();
       }, function * (next) {
-        this.should.have.property('captures');
-        this.captures.should.be.instanceOf(Array);
-        this.captures.should.have.property(0, '1');
-        this.status = 204;
+        ctx.should.have.property('captures');
+        ctx.captures.should.be.instanceOf(Array);
+        ctx.captures.should.have.property(0, '1');
+        ctx.status = 204;
       });
 
       request(app.listen())
@@ -113,21 +114,21 @@ describe('layer', function () {
     });
 
     it('return orginal ctx.captures when decodeURIComponent throw error', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
 
       router.get(/^\/api\/([^\/]+)\/?/i, function * (next) {
-        this.should.have.property('captures');
-        this.captures.should.be.type('object');
-        this.captures.should.have.property(0, '101%');
-        yield next;
+        ctx.should.have.property('captures');
+        ctx.captures.should.be.type('object');
+        ctx.captures.should.have.property(0, '101%');
+        yield next();
       }, function * (next) {
-        this.should.have.property('captures');
-        this.captures.should.be.type('object');
-        this.captures.should.have.property(0, '101%');
-        this.status = 204;
+        ctx.should.have.property('captures');
+        ctx.captures.should.be.type('object');
+        ctx.captures.should.have.property(0, '101%');
+        ctx.status = 204;
       });
 
       request(app.listen())
@@ -142,21 +143,21 @@ describe('layer', function () {
     });
 
     it('populates ctx.captures with regexp captures include undefiend', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
 
       router.get(/^\/api(\/.+)?/i, function * (next) {
-        this.should.have.property('captures');
-        this.captures.should.be.type('object');
-        this.captures.should.have.property(0, undefined);
-        yield next;
+        ctx.should.have.property('captures');
+        ctx.captures.should.be.type('object');
+        ctx.captures.should.have.property(0, undefined);
+        yield next();
       }, function * (next) {
-        this.should.have.property('captures');
-        this.captures.should.be.type('object');
-        this.captures.should.have.property(0, undefined);
-        this.status = 204;
+        ctx.should.have.property('captures');
+        ctx.captures.should.be.type('object');
+        ctx.captures.should.have.property(0, undefined);
+        ctx.status = 204;
       });
 
       request(app.listen())
@@ -171,7 +172,7 @@ describe('layer', function () {
     });
 
     it('should throw friendly error message when handle not exists', function () {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
@@ -194,23 +195,23 @@ describe('layer', function () {
 
   describe('layer#param()', function () {
     it('composes middleware for param fn', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       const route = router.register('/users/:user', ['GET'], [function * (next) {
-        this.body = this.user;
+        ctx.body = ctx.user;
       }]);
 
       route.param('user', function * (id, next) {
-        this.user = {
+        ctx.user = {
           name: 'John'
         };
 
         if (!id) {
-          return this.status = 404;
+          return ctx.status = 404;
         }
 
-        yield next;
+        yield next();
       });
 
       router.stack.push(route);
@@ -230,35 +231,35 @@ describe('layer', function () {
     });
 
     it('ignores params which are not matched', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       const route = router.register('/users/:user', ['GET'], [function * (next) {
-        this.body = this.user;
+        ctx.body = ctx.user;
       }]);
 
       route.param('user', function * (id, next) {
-        this.user = {
+        ctx.user = {
           name: 'John'
         };
 
         if (!id) {
-          return this.status = 404;
+          return ctx.status = 404;
         }
 
-        yield next;
+        yield next();
       });
 
       route.param('title', function * (id, next) {
-        this.user = {
+        ctx.user = {
           name: 'mark'
         };
 
         if (!id) {
-          return this.status = 404;
+          return ctx.status = 404;
         }
 
-        yield next;
+        yield next();
       });
 
       router.stack.push(route);
@@ -280,7 +281,7 @@ describe('layer', function () {
 
   describe('layer#url()', function () {
     it('generates route URL', function () {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       const route = router.register('/:category/:title', ['get'], [function * () {}], 'books');
@@ -295,7 +296,7 @@ describe('layer', function () {
     });
 
     it('escapes using encodeURIComponent()', function () {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       const route = router.register('/:category/:title', ['get'], [function * () {}], 'books');

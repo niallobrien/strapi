@@ -5,6 +5,8 @@ const request = require('supertest');
 
 const strapi = require('../../..');
 
+const Instance = strapi.instance;
+
 const mock = require('./mocks/app');
 
 describe('hsts', function () {
@@ -29,7 +31,7 @@ describe('hsts', function () {
     const app = mock(config);
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());
@@ -53,7 +55,7 @@ describe('hsts', function () {
     const app = mock(config);
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());
@@ -75,7 +77,7 @@ describe('hsts', function () {
     const app = mock(config);
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());
@@ -100,7 +102,7 @@ describe('hsts', function () {
     const app = mock(config);
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());
@@ -126,7 +128,7 @@ describe('hsts', function () {
     const app = mock(config);
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());

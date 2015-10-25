@@ -4,25 +4,26 @@ const path = require('path');
 const request = require('supertest');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 const fixtures = path.join(__dirname, 'fixtures');
 
 describe('bodyparser', function () {
   describe('json body', function () {
-    const app = new Koa();
-
-    app.keys = ['a', 'b'];
-    app.use(strapi.middlewares.bodyparser());
 
     it('should parse json body ok', function (done) {
+      const app = new Instance();
+
+      app.keys = ['a', 'b'];
+
       app.use(strapi.middlewares.bodyparser());
 
-      app.use(function * () {
-        this.request.body.should.eql({
+      app.use(function * (ctx, next) {
+        ctx.request.body.should.eql({
           foo: 'bar'
         });
-        this.body = this.request.body;
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -36,13 +37,16 @@ describe('bodyparser', function () {
     });
 
     it('should parse json body with json-api headers ok', function (done) {
+      const app = new Instance();
+
+      app.keys = ['a', 'b'];
       app.use(strapi.middlewares.bodyparser());
 
-      app.use(function * () {
-        this.request.body.should.eql({
+      app.use(function * (ctx, next) {
+        ctx.request.body.should.eql({
           foo: 'bar'
         });
-        this.body = this.request.body;
+        ctx.body = ctx.request.body;
       });
       request(app.listen())
         .post('/')
@@ -55,18 +59,18 @@ describe('bodyparser', function () {
     });
 
     it('should parse json patch', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
       app.use(strapi.middlewares.bodyparser());
 
-      app.use(function * () {
-        this.request.body.should.eql([{
+      app.use(function * (ctx, next) {
+        ctx.request.body.should.eql([{
           op: 'add',
           path: '/foo',
           value: 'bar'
         }]);
-        this.body = this.request.body;
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -81,7 +85,7 @@ describe('bodyparser', function () {
     });
 
     it('should json body reach the limit size', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -89,8 +93,8 @@ describe('bodyparser', function () {
         jsonLimit: 100
       }));
 
-      app.use(function * () {
-        this.body = this.request.body;
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -100,7 +104,7 @@ describe('bodyparser', function () {
     });
 
     it('should json body error with string in strict mode', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -108,8 +112,8 @@ describe('bodyparser', function () {
         jsonLimit: 100
       }));
 
-      app.use(function * () {
-        this.body = this.request.body;
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -120,7 +124,7 @@ describe('bodyparser', function () {
     });
 
     it('should json body ok with string not in strict mode', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -129,8 +133,8 @@ describe('bodyparser', function () {
         strict: false
       }));
 
-      app.use(function * () {
-        this.body = this.request.body;
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -143,7 +147,7 @@ describe('bodyparser', function () {
 
     describe('opts.detectJSON', function () {
       it('should parse json body on /foo.json request', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
@@ -153,11 +157,11 @@ describe('bodyparser', function () {
           }
         }));
 
-        app.use(function * () {
-          this.request.body.should.eql({
+        app.use(function * (ctx, next) {
+          ctx.request.body.should.eql({
             foo: 'bar'
           });
-          this.body = this.request.body;
+          ctx.body = ctx.request.body;
         });
 
         request(app.listen())
@@ -171,7 +175,7 @@ describe('bodyparser', function () {
       });
 
       it('should not parse json body on /foo request', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.keys = ['a', 'b'];
 
@@ -181,8 +185,8 @@ describe('bodyparser', function () {
           }
         }));
 
-        app.use(function * () {
-          this.body = this.request.body;
+        app.use(function * (ctx, next) {
+          ctx.body = ctx.request.body;
         });
 
         request(app.listen())
@@ -198,19 +202,19 @@ describe('bodyparser', function () {
   });
 
   describe('form body', function () {
-    const app = new Koa();
+    const app = new Instance();
 
     app.keys = ['a', 'b'];
     app.use(strapi.middlewares.bodyparser());
 
     it('should parse form body ok', function (done) {
-      app.use(function * () {
-        this.request.body.should.eql({
+      app.use(function * (ctx, next) {
+        ctx.request.body.should.eql({
           foo: {
             bar: 'baz'
           }
         });
-        this.body = this.request.body;
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -229,7 +233,7 @@ describe('bodyparser', function () {
     });
 
     it('should parse form body reach the limit size', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -251,7 +255,7 @@ describe('bodyparser', function () {
 
   describe('extent type', function () {
     it('should extent json ok', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -261,8 +265,8 @@ describe('bodyparser', function () {
         }
       }));
 
-      app.use(function * () {
-        this.body = this.request.body;
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -277,7 +281,7 @@ describe('bodyparser', function () {
     });
 
     it('should extent json with array ok', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
@@ -287,8 +291,8 @@ describe('bodyparser', function () {
         }
       }));
 
-      app.use(function * () {
-        this.body = this.request.body;
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.request.body;
       });
 
       request(app.listen())
@@ -304,14 +308,14 @@ describe('bodyparser', function () {
   });
 
   describe('other type', function () {
-    const app = new Koa();
+    const app = new Instance();
 
     app.keys = ['a', 'b'];
     app.use(strapi.middlewares.bodyparser());
 
     it('should get body null', function (done) {
-      app.use(function * () {
-        this.request.body.should.eql({});
+      app.use(function * (ctx, next) {
+        ctx.request.body.should.eql({});
         done();
       });
 
@@ -322,7 +326,7 @@ describe('bodyparser', function () {
   });
 
   describe('onerror', function () {
-    const app = new Koa();
+    const app = new Instance();
 
     app.keys = ['a', 'b'];
 
@@ -333,7 +337,7 @@ describe('bodyparser', function () {
     }));
 
     it('should get custom error message', function (done) {
-      app.use(function * () {});
+      app.use(function * (ctx, next) {});
 
       request(app.listen())
         .post('/')

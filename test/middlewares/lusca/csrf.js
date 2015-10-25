@@ -5,6 +5,8 @@ const request = require('supertest');
 
 const strapi = require('../../..');
 
+const Instance = strapi.instance;
+
 const mock = require('./mocks/app');
 
 describe('csrf', function () {
@@ -29,8 +31,8 @@ describe('csrf', function () {
     });
 
     router.get('/csrf', function * () {
-      this.body = {
-        token: this.state._csrf
+      ctx.body = {
+        token: ctx.state._csrf
       };
     });
 
@@ -54,14 +56,14 @@ describe('csrf', function () {
   //   });
   //
   //   router.get('/csrf', function * () {
-  //     this.body = {
-  //       token: this.state._csrf
+  //     ctx.body = {
+  //       token: ctx.state._csrf
   //     };
   //   });
   //
   //   router.post('/csrf', function * () {
-  //     this.body = {
-  //       token: this.state._csrf
+  //     ctx.body = {
+  //       token: ctx.state._csrf
   //     };
   //   });
   //
@@ -101,8 +103,8 @@ describe('csrf', function () {
 //     });
 //
 //     router.all('/csrf', function * () {
-//       this.body = {
-//         token: this.state.foobar
+//       ctx.body = {
+//         token: ctx.state.foobar
 //       };
 //     });
 //
@@ -130,8 +132,8 @@ describe('csrf', function () {
 //     });
 //
 //     router.all('/csrf', function * () {
-//       this.body = {
-//         token: this.state._csrf
+//       ctx.body = {
+//         token: ctx.state._csrf
 //       };
 //     });
 //
@@ -163,8 +165,8 @@ describe('csrf', function () {
 //     });
 //
 //     router.all('/csrf', function * () {
-//       this.body = {
-//         token: this.state._csrf
+//       ctx.body = {
+//         token: ctx.state._csrf
 //       };
 //     });
 //
@@ -199,8 +201,8 @@ describe('csrf', function () {
 //     const app = mock(mockConfig);
 //
 //     router.all('/csrf', function * () {
-//       this.body = {
-//         token: this.state._csrf
+//       ctx.body = {
+//         token: ctx.state._csrf
 //       };
 //     });
 //

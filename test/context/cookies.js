@@ -2,15 +2,17 @@
 
 const request = require('supertest');
 
-const Koa = require('../..').server;
+const strapi = require('../..');
+
+const Instance = strapi.instance;
 
 describe('ctx.cookies.set()', function () {
   it('should set an unsigned cookie', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
-    app.use(function * () {
-      this.cookies.set('name', 'jon');
-      this.status = 204;
+    app.use(function * (ctx, next) {
+      ctx.cookies.set('name', 'jon');
+      ctx.status = 204;
     });
 
     const server = app.listen();
@@ -34,15 +36,15 @@ describe('ctx.cookies.set()', function () {
   describe('with .signed', function () {
     describe('when no .keys are set', function () {
       it('should error', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           try {
-            this.cookies.set('foo', 'bar', {
+            ctx.cookies.set('foo', 'bar', {
               signed: true
             });
           } catch (err) {
-            this.body = err.message;
+            ctx.body = err.message;
           }
         });
 
@@ -53,15 +55,15 @@ describe('ctx.cookies.set()', function () {
     });
 
     it('should send a signed cookie', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       app.keys = ['a', 'b'];
 
-      app.use(function * () {
-        this.cookies.set('name', 'jon', {
+      app.use(function * (ctx, next) {
+        ctx.cookies.set('name', 'jon', {
           signed: true
         });
-        this.status = 204;
+        ctx.status = 204;
       });
 
       const server = app.listen();

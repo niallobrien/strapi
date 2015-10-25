@@ -6,7 +6,9 @@ const statuses = require('statuses');
 
 const response = require('../helpers/context').response;
 
-const Koa = require('../..').server;
+const strapi = require('../..');
+
+const Instance = strapi.instance;
 
 describe('res.status=', function () {
   describe('when a status code', function () {
@@ -32,23 +34,23 @@ describe('res.status=', function () {
       });
     });
 
-    describe('and custom status', function () {
-      before(function () {
-        statuses['700'] = 'custom status';
-      });
-
-      it('should set the status', function () {
-        const res = response();
-        res.status = 700;
-        res.status.should.equal(700);
-      });
-
-      it('should not throw', function () {
-        assert.doesNotThrow(function () {
-          response().status = 700;
-        });
-      });
-    });
+    // describe('and custom status', function () {
+    //   before(function () {
+    //     statuses['700'] = 'custom status';
+    //   });
+    //
+    //   it('should set the status', function () {
+    //     const res = response();
+    //     res.status = 700;
+    //     res.status.should.equal(700);
+    //   });
+    //
+    //   it('should not throw', function () {
+    //     assert.doesNotThrow(function () {
+    //       response().status = 700;
+    //     });
+    //   });
+    // });
   });
 
   describe('when a status string', function () {
@@ -61,19 +63,19 @@ describe('res.status=', function () {
 
   function strip (status) {
     it('should strip content related header fields', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
-        this.body = {
+      app.use(function * (ctx, next) {
+        ctx.body = {
           foo: 'bar'
         };
-        this.set('Content-Type', 'application/json; charset=utf-8');
-        this.set('Content-Length', '15');
-        this.set('Transfer-Encoding', 'chunked');
-        this.status = status;
-        assert(this.response.header['content-type'] == null);
-        assert(this.response.header['content-length'] == null);
-        assert(this.response.header['transfer-encoding'] == null);
+        ctx.set('Content-Type', 'application/json; charset=utf-8');
+        ctx.set('Content-Length', '15');
+        ctx.set('Transfer-Encoding', 'chunked');
+        ctx.status = status;
+        assert(ctx.response.header['content-type'] == null);
+        assert(ctx.response.header['content-length'] == null);
+        assert(ctx.response.header['transfer-encoding'] == null);
       });
 
       request(app.listen())
@@ -89,16 +91,16 @@ describe('res.status=', function () {
     });
 
     it('should strip content releated header fields after status set', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
-        this.status = status;
-        this.body = {
+      app.use(function * (ctx, next) {
+        ctx.status = status;
+        ctx.body = {
           foo: 'bar'
         };
-        this.set('Content-Type', 'application/json; charset=utf-8');
-        this.set('Content-Length', '15');
-        this.set('Transfer-Encoding', 'chunked');
+        ctx.set('Content-Type', 'application/json; charset=utf-8');
+        ctx.set('Content-Length', '15');
+        ctx.set('Transfer-Encoding', 'chunked');
       });
 
       request(app.listen())

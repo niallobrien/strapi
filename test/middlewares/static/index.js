@@ -5,13 +5,14 @@ const path = require('path');
 const request = require('supertest');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('assets', function () {
   describe('when defer: false', function () {
     describe('when root = "."', function () {
       it('should serve from cwd', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static('.'));
 
@@ -23,7 +24,7 @@ describe('assets', function () {
 
     describe('when path is not a file', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures')));
 
@@ -35,13 +36,13 @@ describe('assets', function () {
 
     describe('when upstream middleware responds', function () {
       it('should respond', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures')));
 
-        app.use(function * (next) {
-          yield next;
-          this.body = 'hey';
+        app.use(function * (ctx, next) {
+          yield next();
+          ctx.body = 'hey';
         });
 
         request(app.listen())
@@ -53,7 +54,7 @@ describe('assets', function () {
 
     describe('the path is valid', function () {
       it('should serve the file', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures')));
 
@@ -67,7 +68,7 @@ describe('assets', function () {
     describe('.index', function () {
       describe('when present', function () {
         it('should alter the index file supported', function (done) {
-          const app = new Koa();
+          const app = new Instance();
 
           app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
             index: 'index.txt'
@@ -83,7 +84,7 @@ describe('assets', function () {
 
       describe('when omitted', function () {
         it('should use index.html', function (done) {
-          const app = new Koa();
+          const app = new Instance();
 
           app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures')));
 
@@ -98,7 +99,7 @@ describe('assets', function () {
 
     describe('when method is not `GET` or `HEAD`', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures')));
 
@@ -112,15 +113,15 @@ describe('assets', function () {
   describe('when defer: true', function () {
     describe('when upstream middleware responds', function () {
       it('should do nothing', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
           defer: true
         }));
 
-        app.use(function * (next) {
-          yield next;
-          this.body = 'hey';
+        app.use(function * (ctx, next) {
+          yield next();
+          ctx.body = 'hey';
         });
 
         request(app.listen())
@@ -132,7 +133,7 @@ describe('assets', function () {
 
     describe('the path is valid', function () {
       it('should serve the file', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
           defer: true
@@ -148,7 +149,7 @@ describe('assets', function () {
     describe('.index', function () {
       describe('when present', function () {
         it('should alter the index file supported', function (done) {
-          const app = new Koa();
+          const app = new Instance();
 
           app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
             defer: true,
@@ -165,7 +166,7 @@ describe('assets', function () {
 
       describe('when omitted', function () {
         it('should use index.html', function (done) {
-          const app = new Koa();
+          const app = new Instance();
 
           app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
             defer: true
@@ -182,7 +183,7 @@ describe('assets', function () {
 
     describe('when path is not a file', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
           defer: true
@@ -196,14 +197,14 @@ describe('assets', function () {
 
     describe('it should not handle the request', function () {
       it('when status=204', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
           defer: true
         }));
 
-        app.use(function * () {
-          this.status = 204;
+        app.use(function * (ctx, next) {
+          ctx.status = 204;
         });
 
         request(app.listen())
@@ -212,14 +213,14 @@ describe('assets', function () {
       });
 
       it('when body=""', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
           defer: true
         }));
 
-        app.use(function * () {
-          this.body = '';
+        app.use(function * (ctx, next) {
+          ctx.body = '';
         });
 
         request(app.listen())
@@ -230,7 +231,7 @@ describe('assets', function () {
 
     describe('when method is not `GET` or `HEAD`', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
         app.use(strapi.middlewares.static(path.resolve(__dirname, 'fixtures'), {
           defer: true

@@ -2,10 +2,10 @@
 
 const strapi = require('../../../..');
 
-const Koa = strapi.server;
+const Instance = strapi.instance;
 
 module.exports = function (config, disableSession) {
-  const app = new Koa();
+  const app = new Instance();
   const router = strapi.middlewares.router();
 
   app.keys = ['key1', 'key2'];
@@ -20,7 +20,7 @@ module.exports = function (config, disableSession) {
   app.use(strapi.middlewares.lusca(config));
 
   router.get('/', function * () {
-    this.body = 'hello';
+    ctx.body = 'hello';
   });
 
   app.use(router.routes());

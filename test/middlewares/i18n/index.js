@@ -5,12 +5,13 @@ const path = require('path');
 const request = require('supertest');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('i18n', function () {
   describe('detect the query string', function () {
     it('should be "en" locale', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       strapi.middlewares.locale(app);
 
@@ -20,8 +21,8 @@ describe('i18n', function () {
         modes: ['query']
       }));
 
-      app.use(function * () {
-        this.body = this.i18n.__('locales.en');
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.i18n.__('locales.en');
       });
 
       request(app.listen())
@@ -32,33 +33,33 @@ describe('i18n', function () {
   });
 
   describe('detect the subdomain', function () {
-    const app = new Koa();
+    const app = new Instance();
 
     strapi.middlewares.locale(app);
 
-    let enApp = strapi.server();
-    enApp.use(function * () {
-      this.body = this.getLocaleFromSubdomain();
+    let enApp = new Instance();
+    enApp.use(function * (ctx, next) {
+      ctx.body = ctx.getLocaleFromSubdomain();
     });
 
-    enApp = strapi.middlewares.compose(enApp);
+    enApp = strapi.middlewares.compose([enApp]);
 
-    let zhCNApp = strapi.server();
-    zhCNApp.use(function * () {
-      this.body = this.getLocaleFromSubdomain();
+    let zhCNApp = new Instance();
+    zhCNApp.use(function * (ctx, next) {
+      ctx.body = ctx.getLocaleFromSubdomain();
     });
 
-    zhCNApp = strapi.middlewares.compose(zhCNApp);
+    zhCNApp = strapi.middlewares.compose([zhCNApp]);
 
-    app.use(function * (next) {
-      switch (this.host) {
+    app.use(function * (ctx, next) {
+      switch (ctx.host) {
         case 'en.koajs.com':
           return yield enApp.call(this, next);
         case 'zh-CN.koajs.com':
           return yield zhCNApp.call(this, next);
       }
 
-      yield next;
+      yield next();
     });
 
     app.use(strapi.middlewares.i18n(app, {
@@ -67,8 +68,8 @@ describe('i18n', function () {
       modes: ['subdomain']
     }));
 
-    app.use(function * () {
-      this.body = this.i18n.__('locales.en');
+    app.use(function * (ctx, next) {
+      ctx.body = ctx.i18n.__('locales.en');
     });
 
     it('should be "en" locale', function (done) {
@@ -98,7 +99,7 @@ describe('i18n', function () {
 
   describe('detect the header', function () {
     it('should be "zh-tw" locale', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       strapi.middlewares.locale(app);
 
@@ -108,8 +109,8 @@ describe('i18n', function () {
         modes: ['header']
       }));
 
-      app.use(function * () {
-        this.body = this.i18n.__('locales.zh-CN');
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.i18n.__('locales.zh-CN');
       });
 
       request(app.listen())
@@ -122,7 +123,7 @@ describe('i18n', function () {
 
   describe('detect the cookie', function () {
     it('should be "zh-cn" locale', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
       strapi.middlewares.locale(app);
 
@@ -132,8 +133,8 @@ describe('i18n', function () {
         modes: ['cookie']
       }));
 
-      app.use(function * () {
-        this.body = this.i18n.__('locales.zh-CN');
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.i18n.__('locales.zh-CN');
       });
 
       request(app.listen())
@@ -148,7 +149,7 @@ describe('i18n', function () {
     let app;
 
     beforeEach(function () {
-      app = strapi.server();
+      app = new Instance();
 
       strapi.middlewares.locale(app);
 
@@ -158,8 +159,8 @@ describe('i18n', function () {
         modes: ['cookie', 'header']
       }));
 
-      app.use(function * () {
-        this.body = this.i18n.__('locales.zh-CN');
+      app.use(function * (ctx, next) {
+        ctx.body = ctx.i18n.__('locales.zh-CN');
       });
     });
 

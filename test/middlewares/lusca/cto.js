@@ -5,6 +5,8 @@ const request = require('supertest');
 
 const strapi = require('../../..');
 
+const Instance = strapi.instance;
+
 const mock = require('./mocks/app');
 
 describe('x-content-type-options', function () {
@@ -30,7 +32,7 @@ describe('x-content-type-options', function () {
     const app = mock(config);
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());

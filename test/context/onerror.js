@@ -2,15 +2,17 @@
 
 const request = require('supertest');
 
-const Koa = require('../..').server;
+const strapi = require('../..');
+
+const Instance = strapi.instance;
 
 describe('ctx.onerror(err)', function () {
   it('should respond', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
-    app.use(function * () {
-      this.body = 'something else';
-      this.throw(418, 'boom');
+    app.use(function * (ctx, next) {
+      ctx.body = 'something else';
+      ctx.throw(418, 'boom');
     });
 
     const server = app.listen();
@@ -24,14 +26,14 @@ describe('ctx.onerror(err)', function () {
   });
 
   it('should unset all headers', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
-    app.use(function * () {
-      this.set('Vary', 'Accept-Encoding');
-      this.set('X-CSRF-Token', 'asdf');
-      this.body = 'response';
+    app.use(function * (ctx, next) {
+      ctx.set('Vary', 'Accept-Encoding');
+      ctx.set('X-CSRF-Token', 'asdf');
+      ctx.body = 'response';
 
-      this.throw(418, 'boom');
+      ctx.throw(418, 'boom');
     });
 
     const server = app.listen();
@@ -56,10 +58,10 @@ describe('ctx.onerror(err)', function () {
   describe('when invalid err.status', function () {
     describe('not number', function () {
       it('should respond 500', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
-          this.body = 'something else';
+        app.use(function * (ctx, next) {
+          ctx.body = 'something else';
           const err = new Error('some error');
           err.status = 'notnumber';
           throw err;
@@ -77,10 +79,10 @@ describe('ctx.onerror(err)', function () {
 
     describe('not http status code', function () {
       it('should respond 500', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
-          this.body = 'something else';
+        app.use(function * (ctx, next) {
+          ctx.body = 'something else';
           const err = new Error('some error');
           err.status = 9999;
           throw err;
@@ -99,9 +101,9 @@ describe('ctx.onerror(err)', function () {
 
   describe('when non-error thrown', function () {
     it('should response non-error thrown message', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         throw 'string error';
       });
 

@@ -5,6 +5,8 @@ const request = require('supertest');
 
 const strapi = require('../../..');
 
+const Instance = strapi.instance;
+
 const mock = require('./mocks/app');
 
 describe('xframe', function () {
@@ -60,7 +62,7 @@ describe('xframe', function () {
     const app = mock(config);
 
     router.get('/show', function * () {
-      this.body = 'show';
+      ctx.body = 'show';
     });
 
     app.use(router.routes());

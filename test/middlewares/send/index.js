@@ -6,13 +6,14 @@ const request = require('supertest');
 const assert = require('assert');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('send', function () {
   it('should set the Content-Type', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
-    app.use(function * () {
+    app.use(function * (ctx, next) {
       yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/user.json');
     });
 
@@ -23,9 +24,9 @@ describe('send', function () {
   });
 
   it('should set the Content-Length', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
-    app.use(function * () {
+    app.use(function * (ctx, next) {
       yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/user.json');
     });
 
@@ -36,13 +37,13 @@ describe('send', function () {
   });
 
   it('should cleanup on socket error', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     let stream;
 
-    app.use(function * () {
+    app.use(function * (ctx, next) {
       yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/user.json');
-      stream = this.body;
-      this.socket.emit('error', new Error('boom'));
+      stream = ctx.body;
+      ctx.socket.emit('error', new Error('boom'));
     });
 
     request(app.listen())
@@ -57,9 +58,9 @@ describe('send', function () {
   describe('with no .root', function () {
     describe('when the path is absolute', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, path.resolve(__dirname, 'fixtures', 'hello.txt'));
         });
 
@@ -71,9 +72,9 @@ describe('send', function () {
 
     describe('when the path is relative', function () {
       it('should 200', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, '/test/middlewares/send/fixtures/hello.txt');
         });
 
@@ -86,9 +87,9 @@ describe('send', function () {
 
     describe('when the path contains ..', function () {
       it('should 403', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, '/../send/fixtures/hello.txt');
         });
 
@@ -102,9 +103,9 @@ describe('send', function () {
   describe('with .root', function () {
     describe('when the path is absolute', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const opts = {
             root: 'test/fixtures'
           };
@@ -120,9 +121,9 @@ describe('send', function () {
 
     describe('when the path is relative and exists', function () {
       it('should serve the file', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const opts = {
             root: 'test/middlewares/send/fixtures'
           };
@@ -139,9 +140,9 @@ describe('send', function () {
 
     describe('when the path is relative and does not exist', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const opts = {
             root: 'test/fixtures'
           };
@@ -157,9 +158,9 @@ describe('send', function () {
 
     describe('when the path resolves above the root', function () {
       it('should 403', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const opts = {
             root: 'test/fixtures'
           };
@@ -175,9 +176,9 @@ describe('send', function () {
 
     describe('when the path resolves within root', function () {
       it('should 403', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const opts = {
             root: 'test/middlewares/send/fixtures'
           };
@@ -195,9 +196,9 @@ describe('send', function () {
   describe('with .index', function () {
     describe('when the index file is present', function () {
       it('should serve it', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const opts = {
             root: 'test/middlewares/send/',
             index: 'index.html'
@@ -213,15 +214,15 @@ describe('send', function () {
       });
 
       it('should serve it', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const opts = {
             root: 'test/middlewares/send/fixtures/world',
             index: 'index.html'
           };
 
-          yield strapi.middlewares.send(this, this.path, opts);
+          yield strapi.middlewares.send(this, ctx.path, opts);
         });
 
         request(app.listen())
@@ -234,9 +235,9 @@ describe('send', function () {
 
   describe('when path is not a file', function () {
     it('should 404', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         yield strapi.middlewares.send(this, '/test/middlewares/send/');
       });
 
@@ -246,9 +247,9 @@ describe('send', function () {
     });
 
     it('should return undefined', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         const sent = yield strapi.middlewares.send(this, '/test/middlewares/send/');
         assert.equal(sent, undefined);
       });
@@ -261,9 +262,9 @@ describe('send', function () {
 
   describe('when path is a directory', function () {
     it('should 404', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         yield strapi.middlewares.send(this, '/test/middlewares/send/fixtures');
       });
 
@@ -275,9 +276,9 @@ describe('send', function () {
 
   describe('when path does not finish with slash and format is disabled', function () {
     it('should 404', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         const opts = {
           root: 'test',
           index: 'index.html',
@@ -293,9 +294,9 @@ describe('send', function () {
     });
 
     it('should 404', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         const opts = {
           root: 'test',
           index: 'index.html',
@@ -313,9 +314,9 @@ describe('send', function () {
 
   describe('when path does not finish with slash and format is enabled', function () {
     it('should 200', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         const opts = {
           root: 'test',
           index: 'index.html',
@@ -331,9 +332,9 @@ describe('send', function () {
     });
 
     it('should 404 if no index', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         const opts = {
           root: 'test'
         };
@@ -349,9 +350,9 @@ describe('send', function () {
 
   describe('when path is malformed', function () {
     it('should 400', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         yield strapi.middlewares.send(this, '/%');
       });
 
@@ -364,9 +365,9 @@ describe('send', function () {
   describe('when path is a file', function () {
 
     it('should return the path', function (done) {
-      const app = new Koa();
+      const app = new Instance();
 
-      app.use(function * () {
+      app.use(function * (ctx, next) {
         const p = '/test/middlewares/send/fixtures/user.json';
         const sent = yield strapi.middlewares.send(this, p);
         assert.equal(sent, path.resolve(__dirname, 'fixtures', 'user.json'));
@@ -379,9 +380,9 @@ describe('send', function () {
 
     describe('or .gz version when requested and if possible', function () {
       it('should return path', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/gzip.json');
         });
 
@@ -394,9 +395,9 @@ describe('send', function () {
       });
 
       it('should return .gz path (gzip option defaults to true)', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/gzip.json');
         });
 
@@ -409,9 +410,9 @@ describe('send', function () {
       });
 
       it('should return .gz path when gzip option is turned on', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/gzip.json', {
             gzip: true
           });
@@ -426,9 +427,9 @@ describe('send', function () {
       });
 
       it('should not return .gz path when gzip option is false', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/gzip.json', {
             gzip: false
           });
@@ -445,9 +446,9 @@ describe('send', function () {
 
     describe('and max age is specified', function () {
       it('should set max-age in seconds', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const p = '/test/middlewares/send/fixtures/user.json';
           const sent = yield strapi.middlewares.send(this, p, {
             maxage: 5000
@@ -463,9 +464,9 @@ describe('send', function () {
       });
 
       it('should truncate fractional values for max-age', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           const p = '/test/middlewares/send/fixtures/user.json';
           const sent = yield strapi.middlewares.send(this, p, {
             maxage: 1234
@@ -485,9 +486,9 @@ describe('send', function () {
   describe('.hidden option', function () {
     describe('when trying to get a hidden file', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, path.resolve(__dirname, 'fixtures', '.hidden'));
         });
 
@@ -499,9 +500,9 @@ describe('send', function () {
 
     describe('when trying to get a file from a hidden directory', function () {
       it('should 404', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, path.resolve(__dirname, 'fixtures', '.private', 'id_rsa.txt'));
         });
 
@@ -513,9 +514,9 @@ describe('send', function () {
 
     describe('when trying to get a hidden file and .hidden check is turned off', function () {
       it('should 200', function (done) {
-        const app = new Koa();
+        const app = new Instance();
 
-        app.use(function * () {
+        app.use(function * (ctx, next) {
           yield strapi.middlewares.send(this, 'test/middlewares/send/fixtures/.hidden', {
             hidden: true
           });

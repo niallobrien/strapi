@@ -5,6 +5,8 @@ const assert = require('assert');
 
 const strapi = require('../../..');
 
+const Instance = strapi.instance;
+
 const mock = require('./mocks/app');
 
 describe('xssProtection', function () {

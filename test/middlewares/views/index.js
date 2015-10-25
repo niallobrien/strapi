@@ -5,17 +5,18 @@ const path = require('path');
 const request = require('supertest');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('views', function () {
   it('have a render method', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.use(strapi.middlewares.views());
 
-    app.use(function * () {
-      this.render.should.ok;
-      this.render.should.Function;
+    app.use(function * (ctx, next) {
+      ctx.render.should.ok;
+      ctx.render.should.Function;
     });
 
     request(app.listen())
@@ -24,13 +25,13 @@ describe('views', function () {
   });
 
   it('default to html', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(strapi.middlewares.views(path.resolve(__dirname, 'fixtures')));
 
     router.get('/', function * () {
-      yield this.render('basic');
+      yield ctx.render('basic');
     });
 
     app.use(router.routes());
@@ -44,14 +45,14 @@ describe('views', function () {
   });
 
   it('default to ext if a default engine is set', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.use(strapi.middlewares.views(path.resolve(__dirname, 'fixtures'), {
       default: 'jade'
     }));
 
-    app.use(function * () {
-      yield this.render('basic');
+    app.use(function * (ctx, next) {
+      yield ctx.render('basic');
     });
 
     request(app.listen())
@@ -62,15 +63,15 @@ describe('views', function () {
   });
 
   it('set and render state', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.use(strapi.middlewares.views(path.resolve(__dirname, 'fixtures'), {
       default: 'jade'
     }));
 
-    app.use(function * () {
-      this.state.engine = 'jade';
-      yield this.render('global-state');
+    app.use(function * (ctx, next) {
+      ctx.state.engine = 'jade';
+      yield ctx.render('global-state');
     });
 
     request(app.listen())
@@ -81,16 +82,16 @@ describe('views', function () {
   });
 
   it('set option: root', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.use(strapi.middlewares.views(path.resolve(__dirname, 'fixtures'), {
       root: '../../../test',
       default: 'jade'
     }));
 
-    app.use(function * () {
-      this.state.engine = 'jade';
-      yield this.render('global-state');
+    app.use(function * (ctx, next) {
+      ctx.state.engine = 'jade';
+      yield ctx.render('global-state');
     });
 
     request(app.listen())
@@ -101,23 +102,23 @@ describe('views', function () {
   });
 
   it('works with circular references in state', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.use(strapi.middlewares.views(path.resolve(__dirname, 'fixtures'), {
       default: 'jade'
     }));
 
-    app.use(function * () {
-      this.state = {
+    app.use(function * (ctx, next) {
+      ctx.state = {
         a: {},
         app: app
       };
 
-      this.state.a.a = this.state.a;
+      ctx.state.a.a = ctx.state.a;
 
-      yield this.render('global-state', {
+      yield ctx.render('global-state', {
         app: app,
-        b: this.state,
+        b: ctx.state,
         engine: 'jade'
       });
     });
@@ -130,7 +131,7 @@ describe('views', function () {
   });
 
   it('map given engine to given file ext', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.use(strapi.middlewares.views(path.resolve(__dirname, 'fixtures'), {
       map: {
@@ -138,9 +139,9 @@ describe('views', function () {
       }
     }));
 
-    app.use(function * () {
-      this.state.engine = 'lodash';
-      yield this.render('lodash');
+    app.use(function * (ctx, next) {
+      ctx.state.engine = 'lodash';
+      yield ctx.render('lodash');
     });
 
     request(app.listen())
@@ -151,16 +152,16 @@ describe('views', function () {
   });
 
   it('merges global and local state ', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.use(strapi.middlewares.views(path.resolve(__dirname, 'fixtures'), {
       default: 'jade'
     }));
 
-    app.use(function * () {
-      this.state.engine = 'jade';
+    app.use(function * (ctx, next) {
+      ctx.state.engine = 'jade';
 
-      yield this.render('state', {
+      yield ctx.render('state', {
         type: 'basic'
       });
     });
@@ -172,18 +173,18 @@ describe('views', function () {
       .expect(200, done);
   });
 
-  it('yields to the next middleware if this.render is already defined', function (done) {
-    const app = new Koa();
+  it('yields to the next middleware if ctx.render is already defined', function (done) {
+    const app = new Instance();
 
-    app.use(function * (next) {
-      this.render = true;
-      yield next;
+    app.use(function * (ctx, next) {
+      ctx.render = true;
+      yield next();
     });
 
     app.use(strapi.middlewares.views());
 
-    app.use(function * () {
-      this.body = 'hello';
+    app.use(function * (ctx, next) {
+      ctx.body = 'hello';
     });
 
     request(app.listen())

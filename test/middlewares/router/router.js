@@ -10,30 +10,31 @@ const should = require('should');
 const expect = require('expect.js');
 
 const strapi = require('../../..');
-const Koa = strapi.server;
+
+const Instance = strapi.instance;
 
 describe('router', function () {
   it('does not register middleware more than once', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const parentRouter = strapi.middlewares.router();
     const nestedRouter = strapi.middlewares.router();
 
     nestedRouter
       .get('/first-nested-route', function * (next) {
-          this.body = {
-            n: this.n
+          ctx.body = {
+            n: ctx.n
           };
       })
       .get('/second-nested-route', function * (next) {
-          yield next;
+          yield next();
       })
       .get('/third-nested-route', function * (next) {
-          yield next;
+          yield next();
       });
 
     parentRouter.use('/parent-route', function * (next) {
-      this.n = this.n ? (this.n + 1) : 1;
-      yield next;
+      ctx.n = ctx.n ? (ctx.n + 1) : 1;
+      yield next();
     }, nestedRouter.routes());
 
     app.use(parentRouter.routes());
@@ -51,7 +52,7 @@ describe('router', function () {
   });
 
   it('exposes middleware factory', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     router.should.have.property('routes');
@@ -65,7 +66,7 @@ describe('router', function () {
   });
 
   it('supports promises for async/await', function (done) {
-    const app = new Koa();
+    const app = new Instance();
 
     app.experimental = true;
 
@@ -96,18 +97,18 @@ describe('router', function () {
   });
 
   it('matches middleware only if route was matched', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     const otherRouter = strapi.middlewares.router();
 
-    router.use(function * (next) {
-      this.body = { bar: 'baz' };
-      yield next;
+    router.use(function * (ctx, next) {
+      ctx.body = { bar: 'baz' };
+      yield next();
     });
 
     otherRouter.get('/bar', function * (next) {
-      this.body = this.body || { foo: 'bar' };
+      ctx.body = ctx.body || { foo: 'bar' };
     });
 
     app.use(router.routes()).use(otherRouter.routes());
@@ -126,18 +127,18 @@ describe('router', function () {
   });
 
   it('matches first to last', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     router
       .get('user_page', '/user/(.*).jsx', function * (next) {
-        this.body = { order: 1 };
+        ctx.body = { order: 1 };
       })
       .all('app', '/app/(.*).jsx', function * (next) {
-        this.body = { order: 2 };
+        ctx.body = { order: 2 };
       })
       .all('view', '(.*).jsx', function * (next) {
-        this.body = { order: 3 };
+        ctx.body = { order: 3 };
       });
 
     request(http.createServer(app.use(router.routes()).callback()))
@@ -153,13 +154,13 @@ describe('router', function () {
   });
 
   it('does not run subsequent middleware without yield next', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     router
       .get('user_page', '/user/(.*).jsx', function * (next) {
       }, function * (next) {
-        this.body = { order: 1 };
+        ctx.body = { order: 1 };
       });
 
     request(http.createServer(app.use(router.routes()).callback()))
@@ -169,7 +170,7 @@ describe('router', function () {
   });
 
   it('nests routers with prefixes at root', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const api = strapi.middlewares.router();
 
     const forums = strapi.middlewares.router({
@@ -184,12 +185,12 @@ describe('router', function () {
 
     posts
       .get('/', function * (next) {
-        this.status = 204;
-        yield next;
+        ctx.status = 204;
+        yield next();
       })
       .get('/:pid', function * (next) {
-        this.body = this.params;
-        yield next;
+        ctx.body = ctx.params;
+        yield next();
       });
 
     forums.use(posts.routes());
@@ -229,7 +230,7 @@ describe('router', function () {
   });
 
   it('nests routers with prefixes at path', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const api = strapi.middlewares.router();
 
     const forums = strapi.middlewares.router({
@@ -244,12 +245,12 @@ describe('router', function () {
 
     posts
       .get('/', function * (next) {
-        this.status = 204;
-        yield next;
+        ctx.status = 204;
+        yield next();
       })
       .get('/:pid', function * (next) {
-        this.body = this.params;
-        yield next;
+        ctx.body = ctx.params;
+        yield next();
       });
 
     forums.use('/forums/:fid', posts.routes());
@@ -289,20 +290,20 @@ describe('router', function () {
   });
 
   it('runs subrouter middleware after parent', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const subrouter = strapi.middlewares.router()
-      .use(function * (next) {
-        this.msg = 'subrouter';
-        yield next;
+      .use(function * (ctx, next) {
+        ctx.msg = 'subrouter';
+        yield next();
       })
       .get('/', function * () {
-        this.body = { msg: this.msg };
+        ctx.body = { msg: ctx.msg };
       });
 
     const router = strapi.middlewares.router()
-      .use(function * (next) {
-        this.msg = 'router';
-        yield next;
+      .use(function * (ctx, next) {
+        ctx.msg = 'router';
+        yield next();
       })
       .use(subrouter.routes());
 
@@ -319,16 +320,16 @@ describe('router', function () {
   });
 
   it('runs parent middleware for subrouter routes', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const subrouter = strapi.middlewares.router()
       .get('/sub', function * () {
-        this.body = { msg: this.msg };
+        ctx.body = { msg: ctx.msg };
       });
 
     const router = strapi.middlewares.router()
-      .use(function * (next) {
-        this.msg = 'router';
-        yield next;
+      .use(function * (ctx, next) {
+        ctx.msg = 'router';
+        yield next();
       })
       .use('/parent', subrouter.routes());
 
@@ -345,29 +346,29 @@ describe('router', function () {
   });
 
   it('matches corresponding requests', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
 
     router.get('/:category/:title', function * (next) {
-      this.should.have.property('params');
-      this.params.should.have.property('category', 'programming');
-      this.params.should.have.property('title', 'how-to-node');
-      this.status = 204;
+      ctx.should.have.property('params');
+      ctx.params.should.have.property('category', 'programming');
+      ctx.params.should.have.property('title', 'how-to-node');
+      ctx.status = 204;
     });
 
     router.post('/:category', function * (next) {
-      this.should.have.property('params');
-      this.params.should.have.property('category', 'programming');
-      this.status = 204;
+      ctx.should.have.property('params');
+      ctx.params.should.have.property('category', 'programming');
+      ctx.status = 204;
     });
 
     router.put('/:category/not-a-title', function * (next) {
-		  this.should.have.property('params');
-		  this.params.should.have.property('category', 'programming');
-		  this.params.should.not.have.property('title');
-		  this.status = 204;
+		  ctx.should.have.property('params');
+		  ctx.params.should.have.property('category', 'programming');
+		  ctx.params.should.not.have.property('title');
+		  ctx.status = 204;
 	  });
 
     const server = http.createServer(app.callback());
@@ -399,26 +400,26 @@ describe('router', function () {
   });
 
   it('executes route middleware using app.context', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
 
-    router.use(function * (next) {
-      this.bar = 'baz';
-      yield next;
+    router.use(function * (ctx, next) {
+      ctx.bar = 'baz';
+      yield next();
     });
 
     router.get('/:category/:title', function * (next) {
-      this.foo = 'bar';
-      yield next;
+      ctx.foo = 'bar';
+      yield next();
     }, function * (next) {
-      this.should.have.property('bar', 'baz');
-      this.should.have.property('foo', 'bar');
-      this.should.have.property('app');
-      this.should.have.property('req');
-      this.should.have.property('res');
-      this.status = 204;
+      ctx.should.have.property('bar', 'baz');
+      ctx.should.have.property('foo', 'bar');
+      ctx.should.have.property('app');
+      ctx.should.have.property('req');
+      ctx.should.have.property('res');
+      ctx.status = 204;
       done();
     });
 
@@ -433,7 +434,7 @@ describe('router', function () {
   });
 
   it('supports generators for route middleware', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
@@ -450,11 +451,11 @@ describe('router', function () {
 
     router
       .get('/', function * (next) {
-        yield next;
+        yield next();
       }, function * (next) {
         const version = yield readVersion();
-        this.status = 204;
-        return yield next;
+        ctx.status = 204;
+        return yield next();
       });
 
     request(http.createServer(app.callback()))
@@ -464,7 +465,7 @@ describe('router', function () {
   });
 
   it('responds to OPTIONS requests', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
@@ -487,7 +488,7 @@ describe('router', function () {
   });
 
   it('responds with 405 Method Not Allowed', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
@@ -511,7 +512,7 @@ describe('router', function () {
   });
 
   it('responds with 501 Not Implemented', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
@@ -532,14 +533,14 @@ describe('router', function () {
   });
 
   it('does not send 405 if route matched but status is 404', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
     app.use(router.routes());
     app.use(router.allowedMethods());
 
     router.get('/users', function * () {
-      this.status = 404;
+      ctx.status = 404;
     });
 
     request(http.createServer(app.callback()))
@@ -554,19 +555,19 @@ describe('router', function () {
   });
 
   it('supports custom routing detect path: ctx.routerPath', function (done) {
-    const app = new Koa();
+    const app = new Instance();
     const router = strapi.middlewares.router();
 
-    app.use(function * (next) {
-      const appname = this.request.hostname.split('.', 1)[0];
-      this.routerPath = '/' + appname + this.path;
+    app.use(function * (ctx, next) {
+      const appname = ctx.request.hostname.split('.', 1)[0];
+      ctx.routerPath = '/' + appname + ctx.path;
       yield * next;
     });
 
     app.use(router.routes());
 
     router.get('/helloworld/users', function * () {
-      this.body = this.method + ' ' + this.url;
+      ctx.body = ctx.method + ' ' + ctx.url;
     });
 
     request(http.createServer(app.callback()))
@@ -578,7 +579,7 @@ describe('router', function () {
 
   describe('router#[verb]()', function () {
     it('registers route specific to HTTP verb', function () {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
@@ -601,17 +602,17 @@ describe('router', function () {
     });
 
     it('registers routes without params before routes with params', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router.get('/:parameter', function * (next) {
-        this.body = {
+        ctx.body = {
           test: 'foo'
         };
       });
 
       router.get('/notparameter', function * (next) {
-        this.body = {
+        ctx.body = {
           test: 'bar'
         };
       });
@@ -643,23 +644,23 @@ describe('router', function () {
 
   describe('router#use()', function (done) {
     it('uses router middleware without path', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router.get('/foo/bar', function * (next) {
-        this.body = {
-          foobar: this.foo + 'bar'
+        ctx.body = {
+          foobar: ctx.foo + 'bar'
         };
       });
 
-      router.use(function * (next) {
-        this.foo = 'baz';
-        yield next;
+      router.use(function * (ctx, next) {
+        ctx.foo = 'baz';
+        yield next();
       });
 
-      router.use(function * (next) {
-        this.foo = 'foo';
-        yield next;
+      router.use(function * (ctx, next) {
+        ctx.foo = 'foo';
+        yield next();
       });
 
       app.use(router.routes());
@@ -677,17 +678,17 @@ describe('router', function () {
     });
 
     it('uses router middleware at given path', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router.use('/foo/bar', function * (next) {
-        this.foo = 'foo';
-        yield next;
+        ctx.foo = 'foo';
+        yield next();
       });
 
       router.get('/foo/bar', function * (next) {
-        this.body = {
-          foobar: this.foo + 'bar'
+        ctx.body = {
+          foobar: ctx.foo + 'bar'
         };
       });
 
@@ -707,24 +708,24 @@ describe('router', function () {
     });
 
     it('runs router middleware before subrouter middleware', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       const subrouter = strapi.middlewares.router();
 
-      router.use(function * (next) {
-        this.foo = 'boo';
-        yield next;
+      router.use(function * (ctx, next) {
+        ctx.foo = 'boo';
+        yield next();
       });
 
       subrouter
-        .use(function * (next) {
-          this.foo = 'foo';
-          yield next;
+        .use(function * (ctx, next) {
+          ctx.foo = 'foo';
+          yield next();
         })
         .get('/bar', function * (next) {
-          this.body = {
-            foobar: this.foo + 'bar'
+          ctx.body = {
+            foobar: ctx.foo + 'bar'
           };
         });
 
@@ -745,24 +746,24 @@ describe('router', function () {
     });
 
     it('assigns middleware to array of paths', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router.use(['/foo', '/bar'], function * (next) {
-        this.foo = 'foo';
-        this.bar = 'bar';
-        yield next;
+        ctx.foo = 'foo';
+        ctx.bar = 'bar';
+        yield next();
       });
 
       router.get('/foo', function * (next) {
-        this.body = {
-          foobar: this.foo + 'bar'
+        ctx.body = {
+          foobar: ctx.foo + 'bar'
         };
       });
 
       router.get('/bar', function * (next) {
-        this.body = {
-          foobar: 'foo' + this.bar
+        ctx.body = {
+          foobar: 'foo' + ctx.bar
         };
       });
 
@@ -794,7 +795,7 @@ describe('router', function () {
 
   describe('router#register()', function () {
     it('registers new routes', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router.should.have.property('register');
@@ -813,7 +814,7 @@ describe('router', function () {
 
   describe('router#redirect()', function () {
     it('redirects using route names', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
@@ -837,9 +838,9 @@ describe('router', function () {
 
   describe('router#route()', function () {
     it('inherits routes from nested router', function () {
-      const app = new Koa();
+      const app = new Instance();
       const subrouter = strapi.middlewares.router().get('child', '/hello', function * (next) {
-        this.body = { hello: 'world' };
+        ctx.body = { hello: 'world' };
       });
 
       const router = strapi.middlewares.router().use(subrouter.routes());
@@ -850,13 +851,13 @@ describe('router', function () {
 
   describe('router#url()', function () {
     it('generates URL for given route', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
 
       router.get('books', '/:category/:title', function * (next) {
-        this.status = 204;
+        ctx.status = 204;
       });
 
       let url = router.url('books', { category: 'programming', title: 'how to node' });
@@ -869,21 +870,21 @@ describe('router', function () {
 
   describe('router#param()', function () {
     it('runs parameter middleware', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       app.use(router.routes());
 
       router
         .param('user', function * (id, next) {
-          this.user = { name: 'alex' };
+          ctx.user = { name: 'alex' };
           if (!id) {
-            return this.status = 404;
+            return ctx.status = 404;
           }
-          yield next;
+          yield next();
         })
         .get('/users/:user', function * (next) {
-          this.body = this.user;
+          ctx.body = ctx.user;
         });
 
       request(http.createServer(app.callback()))
@@ -901,32 +902,32 @@ describe('router', function () {
     });
 
     it('runs parameter middleware in order of URL appearance', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router
         .param('user', function * (id, next) {
-          this.user = { name: 'alex' };
-          if (this.ranFirst) {
-            this.user.ordered = 'parameters';
+          ctx.user = { name: 'alex' };
+          if (ctx.ranFirst) {
+            ctx.user.ordered = 'parameters';
           }
           if (!id) {
-            return this.status = 404;
+            return ctx.status = 404;
           }
-          yield next;
+          yield next();
         })
         .param('first', function * (id, next) {
-          this.ranFirst = true;
-          if (this.user) {
-            this.ranFirst = false;
+          ctx.ranFirst = true;
+          if (ctx.user) {
+            ctx.ranFirst = false;
           }
           if (!id) {
-            return this.status = 404;
+            return ctx.status = 404;
           }
-          yield next;
+          yield next();
         })
         .get('/:first/users/:user', function * (next) {
-          this.body = this.user;
+          ctx.body = ctx.user;
         });
 
       request(http.createServer(
@@ -947,24 +948,24 @@ describe('router', function () {
     });
 
     it('runs parent parameter middleware for subrouter', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       const subrouter = strapi.middlewares.router();
       subrouter.get('/:cid', function * (next) {
-        this.body = {
-          id: this.params.id,
-          cid: this.params.cid
+        ctx.body = {
+          id: ctx.params.id,
+          cid: ctx.params.cid
         };
       });
 
       router
         .param('id', function * (id, next) {
-          this.params.id = 'ran';
+          ctx.params.id = 'ran';
           if (!id) {
-            return this.status = 404;
+            return ctx.status = 404;
           }
-          yield next;
+          yield next();
         })
         .use('/:id/children', subrouter.routes());
 
@@ -985,13 +986,13 @@ describe('router', function () {
 
   describe('router#opts', function () {
     it('responds with 200', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router({
         strict: true
       });
 
       router.get('/info', function * () {
-        this.body = 'hello';
+        ctx.body = 'hello';
       });
 
       request(http.createServer(
@@ -1010,13 +1011,13 @@ describe('router', function () {
     });
 
     it('should allow setting a prefix', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const routes = strapi.middlewares.router({
         prefix: '/things/:thing_id'
       });
 
       routes.get('/list', function * (next) {
-        this.body = this.params;
+        ctx.body = ctx.params;
       });
 
       app.use(routes.routes());
@@ -1034,13 +1035,13 @@ describe('router', function () {
     });
 
     it('responds with 404 when has a trailing slash', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router({
         strict: true
       });
 
       router.get('/info', function * () {
-        this.body = 'hello';
+        ctx.body = 'hello';
       });
 
       request(http.createServer(
@@ -1060,13 +1061,13 @@ describe('router', function () {
 
   describe('use middleware with opts', function () {
     it('responds with 200', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router({
         strict: true
       });
 
       router.get('/info', function * () {
-        this.body = 'hello';
+        ctx.body = 'hello';
       })
 
       request(http.createServer(
@@ -1085,13 +1086,13 @@ describe('router', function () {
     });
 
     it('responds with 404 when has a trailing slash', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router({
         strict: true
       });
 
       router.get('/info', function * () {
-        this.body = 'hello';
+        ctx.body = 'hello';
       })
 
       request(http.createServer(
@@ -1111,26 +1112,26 @@ describe('router', function () {
 
   describe('router.routes()', function () {
     it('should return composed middleware', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       let middlewareCount = 0;
 
       const middlewareA = function * (next) {
         middlewareCount++;
-        yield next;
+        yield next();
       };
 
       const middlewareB = function * (next) {
         middlewareCount++;
-        yield next;
+        yield next();
       };
 
       router.use(middlewareA, middlewareB);
 
       router.get('/users/:id', function * () {
-        should.exist(this.params.id);
-        this.body = {
+        should.exist(ctx.params.id);
+        ctx.body = {
           hello: 'world'
         };
       });
@@ -1159,12 +1160,12 @@ describe('router', function () {
 
   describe('if no HEAD method, default to GET', function () {
     it('should default to GET', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router.get('/users/:id', function * () {
-        should.exist(this.params.id);
-        this.body = 'hello';
+        should.exist(ctx.params.id);
+        ctx.body = 'hello';
       });
 
       request(http.createServer(
@@ -1183,12 +1184,12 @@ describe('router', function () {
     });
 
     it('should work with middleware', function (done) {
-      const app = new Koa();
+      const app = new Instance();
       const router = strapi.middlewares.router();
 
       router.get('/users/:id', function * () {
-        should.exist(this.params.id);
-        this.body = 'hello';
+        should.exist(ctx.params.id);
+        ctx.body = 'hello';
       });
 
       request(http.createServer(
@@ -1220,7 +1221,7 @@ describe('router', function () {
       const router = strapi.middlewares.router();
 
       router.get('/users/:id', function * () {
-        this.body = 'test';
+        ctx.body = 'test';
       })
 
       router.prefix('/things/:thing_id');
@@ -1242,18 +1243,18 @@ describe('router', function () {
         let middlewareCount = 0;
 
         before(function () {
-          const app = new Koa();
+          const app = new Instance();
           const router = strapi.middlewares.router();
 
           router.get('/', function * () {
             middlewareCount++;
-            this.body = { name: this.thing };
+            ctx.body = { name: ctx.thing };
           });
 
-          router.use(function * (next) {
+          router.use(function * (ctx, next) {
             middlewareCount++;
-            this.thing = 'worked';
-            yield next;
+            ctx.thing = 'worked';
+            yield next();
           });
 
           router.prefix(prefix);

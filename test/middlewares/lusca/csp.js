@@ -5,6 +5,8 @@ const request = require('supertest');
 
 const strapi = require('../../..');
 
+const Instance = strapi.instance;
+
 const mock = require('./mocks/app');
 
 describe('csp', function () {
@@ -21,7 +23,7 @@ describe('csp', function () {
     });
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());
@@ -43,7 +45,7 @@ describe('csp', function () {
     });
 
     router.get('/', function * () {
-      this.body = 'hello';
+      ctx.body = 'hello';
     });
 
     app.use(router.routes());

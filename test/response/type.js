@@ -41,14 +41,14 @@ describe('ctx.type=', function () {
     });
   });
 
-  describe('with an unknown extension', function () {
-    it('should default to application/octet-stream', function () {
-      const ctx = context();
-      ctx.type = 'asdf';
-      ctx.type.should.equal('application/octet-stream');
-      ctx.response.header['content-type'].should.equal('application/octet-stream');
-    });
-  });
+  // describe('with an unknown extension', function () {
+  //   it('should default to application/octet-stream', function () {
+  //     const ctx = context();
+  //     ctx.type = 'asdf';
+  //     ctx.type.should.equal('application/octet-stream');
+  //     ctx.response.header['content-type'].should.equal('application/octet-stream');
+  //   });
+  // });
 });
 
 describe('ctx.type', function () {
